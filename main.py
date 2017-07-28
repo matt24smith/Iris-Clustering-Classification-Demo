@@ -1,8 +1,16 @@
+"""
+A short demonstration of AI pattern recognition and hierarchical clustering,
+in 100 lines of code.
+
+Author: Matt Smith
+"""
+
 import hdbscan
 import numpy as np
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
 import random
 import csv
 import seaborn as sns
@@ -22,19 +30,27 @@ def readIrisData():
         -- Iris Virginica
     '''
     data = []
-    with open('/mnt/c/Users/mokho_000/Bash/python/iris.data.csv', 'rb') as csvfile:
+    with open('/mnt/c/Users/mokho_000/Bash/python/iriscluster/iris.data.csv', 'rb') as csvfile:
             reader = csv.reader(csvfile, delimiter=',', quotechar='|')
             for row in reader:
 #                print(row)
                 data.append(row)
-    #for some reason it adds empty item to end of list
+    # to deal with extra datum created by newline char
     del data[-1]
     
     print("Read data from Iris dataset complete.")
 
     return data
 
-def renderClusters(clusterer, data1, data2, title=None):
+def renderClusters(clusterer, x, y, z, title=None):
+    """
+    Generate figures and save as .png
+    """
+    data1=np.asarray(x, dtype='float64')
+    data2=np.asarray(y, dtype='float64')
+    data3=np.asarray(z, dtype='float64')
+    nulldata=np.asarray([], dtype='float64')
+
     labels = clusterer.labels_
     probabilities = clusterer.probabilities_
 
@@ -45,25 +61,35 @@ def renderClusters(clusterer, data1, data2, title=None):
     cluster_member_colors = np.array([sns.desaturate(x, p) for x, p in
                                      zip(cluster_colors, probabilities)])   
     fig = plt.figure(1)
-    plt.scatter(data1[0:50], data2[0:50], s=15, marker='s', 
+    ax=fig.add_subplot(111, projection='3d')
+    ax.autoscale_view(tight=True)
+
+    ax.scatter(data1[0:50], data2[0:50], data3[0:50], s=15, marker='s', 
                 c=cluster_member_colors[0:50])
-    plt.scatter(data1[51:100], data2[51:100], s=15, marker='*', 
+    ax.scatter(data1[51:100], data2[51:100], data3[51:100], s=15, marker='*', 
                 c=cluster_member_colors[51:100])
-    plt.scatter(data1[100:], data2[100:], s=15, marker='x', 
+    ax.scatter(data1[100:], data2[100:], data3[100:], s=15, marker='x', 
                 c=cluster_member_colors[100:])
 
-    plt.scatter([], [], label="Iris Setosa", marker='s', c="grey")
-    plt.scatter([], [], label="Iris Versicolour", marker='*', c="grey")
-    plt.scatter([], [], label="Iris Virginica", marker='x', c="grey")
+    ax.scatter(nulldata, nulldata, nulldata, label="Iris Setosa", marker='s', c="grey")
+    ax.scatter(nulldata, nulldata, nulldata, label="Iris Versicolour", marker='*', c="grey")
+    ax.scatter(nulldata, nulldata, nulldata, label="Iris Virginica", marker='x', c="grey")
+    ax.scatter(nulldata, nulldata, nulldata, 
+               label="\nNot pictured: petal\nlength on 4th axis", marker='')
 
-    plt.legend(bbox_to_anchor=(0., 1.02, 1., .102), loc=3, 
-                ncol=3, borderaxespad=0.)
-    if title is not None:
-        out_png = (os.getcwd() + "/" + title + ".png")
-    else:
-        out_png = '/mnt/c/Users/mokho_000/Bash/python/test.png'
-    plt.savefig(out_png, dpi=150)
-    plt.close(fig)
+    ax.legend(loc = 'upper right', bbox_to_anchor=(1,1.), ncol=1, 
+                       fancybox=True, shadow=True)
+    
+    plt.title('Iris Clustering Classification')
+    ax.set_xlabel('Iris Sepal Length')
+    ax.set_ylabel('Iris Sepal Width')
+    ax.set_zlabel('Iris Petal Width')
+    
+    if title is None:
+        title = "test"
+    out_png = (os.getcwd() + "/" + title + ".png")
+    plt.savefig(out_png, dpi=250)
+    plt.close()
 
     print("Clusters rendered and saved to " + os.getcwd() + " as .png")
 
@@ -75,26 +101,11 @@ data_petal_len = [x[2] for x in iris]
 data_petal_wid = [x[3] for x in iris]
 data_classname = [x[4] for x in iris]
 
-sepal_data = zip(data_sepal_len, data_sepal_wid)
-
-clusterer = hdbscan.HDBSCAN(cluster_selection_method="leaf", 
-                            min_cluster_size=25, 
-                            min_samples=1).fit(sepal_data)
-
-renderClusters(clusterer, data_sepal_len, data_sepal_wid, title="SepalClust")
-
-petal_data = zip(data_petal_len, data_petal_wid)
-
-petalClusterer = hdbscan.HDBSCAN(cluster_selection_method="leaf", 
-                            min_cluster_size=25, 
-                            min_samples=1).fit(petal_data)
-
-renderClusters(petalClusterer, data_petal_len, data_petal_wid, title="PetalClust")
-
-all_data = zip(data_sepal_len, data_sepal_wid,data_petal_len, data_petal_wid)
+iris_data = zip(data_sepal_len, data_sepal_wid,data_petal_len, data_petal_wid)
 
 clusterer4D = hdbscan.HDBSCAN(cluster_selection_method="leaf", 
                             min_cluster_size=25, 
-                            min_samples=1).fit(all_data)
+                            min_samples=1).fit(iris_data)
 
-renderClusters(clusterer4D, data_sepal_len, data_sepal_wid, title="4D-Clustering")
+renderClusters(clusterer4D, data_sepal_len, data_sepal_wid, data_petal_len, 
+               title="4D-Clustering")
